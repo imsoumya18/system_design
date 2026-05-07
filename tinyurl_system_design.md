@@ -137,17 +137,17 @@ Location: https://www.example.com/very/long/path?query=param
 
 ```
                     ┌─────────────────────────────────────────────────────┐
-                    │                  WRITE PATH                         │
-                    │  POST /urls                                          │
+                    │                   WRITE PATH                        │
+                    │  POST /urls                                         │
                     │  1. Get next ID from token range (local counter)    │
                     │  2. Convert ID → Base62 (7-char short code)         │
-                    │  3. Store mapping in DynamoDB with TTL               │
-                    │  4. Return short URL to client                       │
+                    │  3. Store mapping in DynamoDB with TTL              │
+                    │  4. Return short URL to client                      │
                     └─────────────────────────────────────────────────────┘
 
                     ┌─────────────────────────────────────────────────────┐
-                    │                  READ PATH                          │
-                    │  GET /{short_code}                                   │
+                    │                    READ PATH                        │
+                    │  GET /{short_code}                                  │
                     │  1. Hash short_code → Redis node (consistent hash)  │
                     │  2. Cache HIT  → return 301 redirect (~1ms)         │
                     │  3. Cache MISS → query DynamoDB → populate cache    │
@@ -158,37 +158,37 @@ Location: https://www.example.com/very/long/path?query=param
 ### System Diagram
 
 ```
-                                         ┌──────────────────┐
-                                         │   ID Gen Service  │
-                                         │  ┌─────────────┐ │
-                                         │  │Token ranges │ │
-                                         │  │per server   │ │
-                                         │  │e.g. 1–1000  │ │
-                                         │  └─────────────┘ │
+                                         ┌───────────────────┐
+                                         │  ID Gen Service   │
+                                         │  ┌─────────────┐  │
+                                         │  │Token ranges │  │
+                                         │  │per server   │  │
+                                         │  │e.g. 1–1000  │  │
+                                         │  └─────────────┘  │
                                          │  active + standby │
-                                         └────────┬─────────┘
+                                         └────────┬──────────┘
                                                   │ on write
                                                   │ (once per 1000 reqs)
                                                   ▼
-┌────────┐    ┌─────────────┐    ┌──────────────────────────┐
-│        │    │             │    │       API Servers         │
-│ Client │───▶│  Load       │───▶│      (stateless)          │
-│        │    │  Balancer   │    │                          │
-└────────┘    └─────────────┘    └───────┬──────────┬───────┘
-                                         │          │
-                              POST /urls │          │ GET /{code}
-                                         │          │
-                                         ▼          ▼
-                              ┌──────────────┐  ┌──────────────────────┐
-                              │   DynamoDB   │  │    Redis Cluster      │
-                              │              │  │  (consistent hashing) │
-                              │  PK: code    │◀─│                      │
-                              │  long_url    │  │  Primary + Replica×N  │
-                              │  created_at  │  │  LRU eviction         │
-                              │  TTL: 5yr    │  │  ~18TB hot URLs       │
-                              │              │  └──────────────────────┘
-                              │  Native TTL  │         │ cache miss
-                              │  auto-expire │◀────────┘
+┌────────┐    ┌─────────────┐    ┌───────────────────────────┐
+│        │    │             │    │       API Servers          │
+│ Client │───▶│    Load     │───▶│       (stateless)          │
+│        │    │  Balancer   │    │                           │
+└────────┘    └─────────────┘    └────────┬──────────┬───────┘
+                                          │          │
+                               POST /urls │          │ GET /{code}
+                                          │          │
+                                          ▼          ▼
+                              ┌──────────────┐  ┌────────────────────────┐
+                              │   DynamoDB   │  │     Redis Cluster      │
+                              │              │  │  (consistent hashing)  │
+                              │  PK: code    │◀─│                        │
+                              │  long_url    │  │  Primary + Replica×N   │
+                              │  created_at  │  │  LRU eviction          │
+                              │  TTL: 5yr    │  │  ~18TB hot URLs        │
+                              │              │  └────────────────────────┘
+                              │  Native TTL  │          │ cache miss
+                              │  auto-expire │◀─────────┘
                               └──────────────┘
 ```
 
