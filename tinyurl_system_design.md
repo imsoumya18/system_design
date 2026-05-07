@@ -192,6 +192,9 @@ Location: https://www.example.com/very/long/path?query=param
                               └──────────────┘
 ```
 
+<img width="1244" height="1168" alt="D5BE1FC4-A815-4FD0-A25D-6496E7F10451" src="https://github.com/user-attachments/assets/e7943179-9af3-45f4-9aa1-e457c2396739" />
+
+
 ---
 
 ## 5. Deep Dive — Key Components
